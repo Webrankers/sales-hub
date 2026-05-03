@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { SubmissionStatus } from '@/types'
-import { STATUS_LABELS, STATUS_COLORS } from '@/types'
+import { STATUS_LABELS } from '@/types'
 
 interface Props {
   currentStatus: SubmissionStatus
@@ -17,8 +17,23 @@ const STATUSES: SubmissionStatus[] = [
   'afgerond',
 ]
 
+// Literal class strings — Tailwind scanner must see these in the source file
+function pillClasses(s: SubmissionStatus): string {
+  if (s === 'actie_ondernemen')   return 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+  if (s === 'wachten_op_reactie') return 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+  if (s === 'afgewezen')          return 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+  /* afgerond */                  return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+}
+
+function dotClasses(s: SubmissionStatus): string {
+  if (s === 'actie_ondernemen')   return 'bg-red-500'
+  if (s === 'wachten_op_reactie') return 'bg-amber-400'
+  if (s === 'afgewezen')          return 'bg-gray-400'
+  /* afgerond */                  return 'bg-green-500'
+}
+
 export default function StatusMenu({ currentStatus, submissionId, onStatusChange }: Props) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen]       = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSelect(status: SubmissionStatus) {
@@ -42,9 +57,7 @@ export default function StatusMenu({ currentStatus, submissionId, onStatusChange
       <button
         onClick={() => setOpen((o) => !o)}
         disabled={loading}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-opacity ${
-          STATUS_COLORS[currentStatus]
-        } ${loading ? 'opacity-50' : 'hover:opacity-80'}`}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-opacity ${pillClasses(currentStatus)} ${loading ? 'opacity-50' : 'hover:opacity-80'}`}
       >
         {loading ? 'Opslaan…' : STATUS_LABELS[currentStatus]}
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -54,7 +67,6 @@ export default function StatusMenu({ currentStatus, submissionId, onStatusChange
 
       {open && (
         <>
-          {/* backdrop */}
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <ul className="absolute left-0 top-full mt-1 z-20 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1 min-w-[200px]">
             {STATUSES.map((s) => (
@@ -65,7 +77,7 @@ export default function StatusMenu({ currentStatus, submissionId, onStatusChange
                     s === currentStatus ? 'font-semibold' : 'text-gray-700 dark:text-gray-200'
                   }`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${dotColor(s)}`} />
+                  <span className={`w-2 h-2 rounded-full ${dotClasses(s)}`} />
                   {STATUS_LABELS[s]}
                   {(s === 'afgewezen' || s === 'afgerond') && (
                     <span className="ml-auto text-[10px] text-gray-400 dark:text-gray-500">→ archief</span>
@@ -78,14 +90,4 @@ export default function StatusMenu({ currentStatus, submissionId, onStatusChange
       )}
     </div>
   )
-}
-
-function dotColor(s: SubmissionStatus) {
-  const map: Record<SubmissionStatus, string> = {
-    actie_ondernemen: 'bg-red-500',
-    wachten_op_reactie: 'bg-yellow-400',
-    afgewezen: 'bg-gray-400',
-    afgerond: 'bg-green-500',
-  }
-  return map[s]
 }

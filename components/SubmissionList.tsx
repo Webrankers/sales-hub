@@ -1,7 +1,15 @@
 'use client'
 
-import type { Submission, SubmissionSource } from '@/types'
-import { STATUS_LABELS, STATUS_COLORS } from '@/types'
+import type { Submission, SubmissionSource, SubmissionStatus } from '@/types'
+import { STATUS_LABELS } from '@/types'
+
+// Literal class strings so Tailwind's scanner always includes them
+function statusPill(s: SubmissionStatus): string {
+  if (s === 'actie_ondernemen')   return 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+  if (s === 'wachten_op_reactie') return 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+  if (s === 'afgewezen')          return 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+  /* afgerond */                  return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+}
 
 interface Props {
   submissions: Submission[]
@@ -164,7 +172,7 @@ export default function SubmissionList({
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">{s.email}</p>
 
                 <div className="flex items-center justify-between mt-1.5">
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[s.status]}`}>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusPill(s.status)}`}>
                     {STATUS_LABELS[s.status]}
                   </span>
                   <span className={`text-[10px] ${timeAgoColor(s.created_at)}`}>
