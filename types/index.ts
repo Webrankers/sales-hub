@@ -12,6 +12,8 @@ export interface Submission {
   name: string
   email: string
   phone: string | null
+  datum: string | null
+  aantal_personen: number | null
   message: string | null
   raw_data: Record<string, unknown> | null
   status: SubmissionStatus

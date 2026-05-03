@@ -67,13 +67,15 @@ export async function POST(req: NextRequest) {
 
   const phone = body.phone ? String(body.phone) : null
   const message = body.message ? String(body.message) : null
+  const datum = body.datum ? String(body.datum) : null
+  const aantal_personen = body.aantal_personen != null ? Number(body.aantal_personen) : null
 
   const draft_email = generateDraftEmail(name, source, message)
 
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('submissions')
-    .insert({ source, name, email, phone, message, raw_data: body, draft_email })
+    .insert({ source, name, email, phone, datum, aantal_personen, message, raw_data: body, draft_email })
     .select()
     .single()
 
