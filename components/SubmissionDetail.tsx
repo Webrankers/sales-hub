@@ -73,14 +73,10 @@ export default function SubmissionDetail({ submission, onStatusChange }: Props) 
                 <dd className="font-medium text-gray-900">{submission.phone}</dd>
               </div>
             )}
-            {submission.datum && (
+            {submission.onderwerp && (
               <div>
-                <dt className="text-gray-400 text-xs">Datum</dt>
-                <dd className="font-medium text-gray-900">
-                  {new Date(submission.datum).toLocaleDateString('nl-NL', {
-                    dateStyle: 'long',
-                  })}
-                </dd>
+                <dt className="text-gray-400 text-xs">Onderwerp</dt>
+                <dd className="font-medium text-gray-900">{submission.onderwerp}</dd>
               </div>
             )}
             {submission.aantal_personen !== null && (
