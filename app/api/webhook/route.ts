@@ -62,10 +62,12 @@ Het ${sourceName} team`
 }
 
 export async function POST(req: NextRequest) {
-  // Optional webhook secret validation
+  // Optional webhook secret validation — accept header or URL param
   const secret = process.env.WEBHOOK_SECRET
   if (secret) {
-    const incoming = req.headers.get('x-webhook-secret')
+    const incoming =
+      req.headers.get('x-webhook-secret') ??
+      req.nextUrl.searchParams.get('secret')
     if (incoming !== secret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
