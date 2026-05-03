@@ -3,6 +3,8 @@
 import type { Submission, SubmissionSource, SubmissionStatus } from '@/types'
 import { STATUS_LABELS } from '@/types'
 
+type StatusFilter = 'all' | SubmissionStatus
+
 // Literal class strings so Tailwind's scanner always includes them
 function statusPill(s: SubmissionStatus): string {
   if (s === 'actie_ondernemen')   return 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
@@ -19,6 +21,8 @@ interface Props {
   onFilterChange: (f: 'active' | 'archived') => void
   companyFilter: 'all' | SubmissionSource
   onCompanyFilterChange: (f: 'all' | SubmissionSource) => void
+  statusFilter: StatusFilter
+  onStatusFilterChange: (f: StatusFilter) => void
 }
 
 const SOURCE_LABEL_STYLES: Record<SubmissionSource, string> = {
@@ -35,6 +39,13 @@ const COMPANY_FILTERS: { value: 'all' | SubmissionSource; label: string }[] = [
   { value: 'all',             label: 'Alle'      },
   { value: 'holy_moly_breda', label: 'Holy Moly' },
   { value: 'spinola_breda',   label: 'Spinola'   },
+]
+
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: 'all',                label: 'Alle'              },
+  { value: 'actie_ondernemen',   label: 'Actie ondernemen'  },
+  { value: 'wachten_op_reactie', label: 'Wachten op reactie'},
+  { value: 'afgerond',           label: 'Afgerond'          },
 ]
 
 function isHotLead(s: Submission) {
@@ -74,11 +85,14 @@ export default function SubmissionList({
   onFilterChange,
   companyFilter,
   onCompanyFilterChange,
+  statusFilter,
+  onStatusFilterChange,
 }: Props) {
   const visible = submissions.filter((s) => {
     const archiveMatch = filter === 'archived' ? s.archived_at !== null : s.archived_at === null
     const companyMatch = companyFilter === 'all' || s.source === companyFilter
-    return archiveMatch && companyMatch
+    const statusMatch  = statusFilter === 'all' || s.status === statusFilter
+    return archiveMatch && companyMatch && statusMatch
   })
 
   return (
@@ -113,6 +127,23 @@ export default function SubmissionList({
               onClick={() => onCompanyFilterChange(value)}
               className={`flex-1 text-[10px] font-semibold py-1 rounded-md border transition-colors ${
                 companyFilter === value
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Status filter pills */}
+        <div className="flex flex-wrap gap-1 mt-2">
+          {STATUS_FILTERS.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => onStatusFilterChange(value)}
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${
+                statusFilter === value
                   ? 'bg-indigo-600 text-white border-indigo-600'
                   : 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
               }`}

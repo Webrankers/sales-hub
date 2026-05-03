@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase-browser'
 import type { Submission, SubmissionStatus, SubmissionSource } from '@/types'
+
+type StatusFilter = 'all' | SubmissionStatus
 import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
 import SubmissionList   from '@/components/SubmissionList'
 import SubmissionDetail from '@/components/SubmissionDetail'
@@ -24,6 +26,7 @@ export default function SalesHub() {
   const [selected, setSelected]             = useState<Submission | null>(null)
   const [filter, setFilter]                 = useState<'active' | 'archived'>('active')
   const [companyFilter, setCompanyFilter]   = useState<'all' | SubmissionSource>('all')
+  const [statusFilter, setStatusFilter]     = useState<StatusFilter>('all')
   const [view, setView]                     = useState<View>('submissions')
   const [loading, setLoading]               = useState(true)
 
@@ -164,6 +167,8 @@ export default function SalesHub() {
               onFilterChange={setFilter}
               companyFilter={companyFilter}
               onCompanyFilterChange={setCompanyFilter}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
             />
           </div>
           <main className="flex-1 overflow-hidden">

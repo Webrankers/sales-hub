@@ -38,7 +38,7 @@ export default function Dashboard({ submissions }: Props) {
 
     const withPersons  = submissions.filter((s) => s.aantal_personen !== null)
     const avgPersons   = withPersons.length > 0
-      ? Math.round(withPersons.reduce((sum, s) => sum + (s.aantal_personen ?? 0), 0) / withPersons.length)
+      ? Math.round(withPersons.reduce((sum, s) => sum + parseInt(String(s.aantal_personen ?? 0), 10), 0) / withPersons.length)
       : 0
 
     const conversion   = total > 0 ? Math.round((completed / total) * 100) : 0
