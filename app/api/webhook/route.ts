@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase-server'
 
-// Normalize source identifier from incoming webhook payload
 function normalizeSource(raw: string): 'holy_moly_breda' | 'spinola_breda' | null {
   const s = raw.toLowerCase().replace(/\s+/g, '_')
   if (s.includes('holy') || s.includes('holy_moly')) return 'holy_moly_breda'
@@ -22,7 +21,6 @@ function generateDraftEmail(ctx: EmailContext): string {
   const sourceName = source === 'holy_moly_breda' ? 'Holy Moly Breda' : 'Spinola Breda'
   const firstName = name.split(' ')[0]
 
-  // Opening — verwijs direct naar het onderwerp of bericht als dat er is
   let opening: string
   if (onderwerp) {
     opening = `Je nam contact op via onze website over "${onderwerp}". Leuk dat je interesse hebt!`
@@ -32,19 +30,15 @@ function generateDraftEmail(ctx: EmailContext): string {
     opening = `Je nam contact op via onze website. Goed dat je de weg naar ons weet te vinden!`
   }
 
-  // Inhoudelijke reactie op het bericht
-  let messageReaction = ''
-  if (message) {
-    messageReaction = `\n\nJe schrijft: "${message}"\n\nDat klinkt als iets waar wij absoluut bij kunnen helpen.`
-  }
+  const messageReaction = message
+    ? `\n\nJe schrijft: "${message}"\n\nDat klinkt als iets waar wij absoluut bij kunnen helpen.`
+    : ''
 
-  // Specifieke vermelding van het aantal personen als dat relevant is
-  let persoonDetail = ''
-  if (aantal_personen !== null && aantal_personen > 0) {
-    persoonDetail = ` voor ${aantal_personen} ${aantal_personen === 1 ? 'persoon' : 'personen'}`
-  }
+  const persoonDetail =
+    aantal_personen !== null && aantal_personen > 0
+      ? ` voor ${aantal_personen} ${aantal_personen === 1 ? 'persoon' : 'personen'}`
+      : ''
 
-  // Afsluiting met concrete uitnodiging
   const closing = persoonDetail
     ? `Zou je tijd hebben voor een kort gesprek? Dan kijk ik graag met je mee wat we${persoonDetail} kunnen betekenen.`
     : `Zou je tijd hebben voor een kort gesprek? Dan vertel ik je graag wat de mogelijkheden zijn.`
@@ -61,8 +55,42 @@ Met vriendelijke groet,
 Het ${sourceName} team`
 }
 
+/** Parse request body regardless of Content-Type.
+ *  Supports application/json and application/x-www-form-urlencoded.
+ *  Returns a flat key→string record plus the raw text for debugging. */
+async function parseBody(req: NextRequest): Promise<{
+  fields: Record<string, string>
+  rawText: string
+  contentType: string
+}> {
+  const contentType = req.headers.get('content-type') ?? ''
+  const rawText = await req.text()
+
+  let fields: Record<string, string> = {}
+
+  if (contentType.includes('application/json')) {
+    try {
+      const parsed = JSON.parse(rawText)
+      // Flatten: keep only string-coercible leaf values
+      for (const [k, v] of Object.entries(parsed)) {
+        if (v !== null && v !== undefined) fields[k] = String(v)
+      }
+    } catch {
+      // Leave fields empty — validation will catch missing required fields
+    }
+  } else {
+    // application/x-www-form-urlencoded (Elementor default) or multipart fallback
+    const params = new URLSearchParams(rawText)
+    for (const [k, v] of params.entries()) {
+      fields[k] = v
+    }
+  }
+
+  return { fields, rawText, contentType }
+}
+
 export async function POST(req: NextRequest) {
-  // Optional webhook secret validation — accept header or URL param
+  // Optional webhook secret — accept header or ?secret= URL param
   const secret = process.env.WEBHOOK_SECRET
   if (secret) {
     const incoming =
@@ -73,20 +101,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let body: Record<string, unknown>
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
+  const { fields, rawText, contentType } = await parseBody(req)
 
-  const name = String(body.name ?? '').trim()
-  const email = String(body.email ?? '').trim()
-  const rawSource = String(body.source ?? '').trim()
+  // Temporary debug log — remove once Elementor field mapping is confirmed
+  console.log('[webhook] content-type:', contentType)
+  console.log('[webhook] raw body:', rawText)
+  console.log('[webhook] parsed fields:', fields)
+
+  const name      = (fields.name ?? '').trim()
+  const email     = (fields.email ?? '').trim()
+  const rawSource = (fields.source ?? '').trim()
 
   if (!name || !email || !rawSource) {
+    console.warn('[webhook] missing required fields — name:', name, 'email:', email, 'source:', rawSource)
     return NextResponse.json(
-      { error: 'Missing required fields: name, email, source' },
+      { error: 'Missing required fields: name, email, source', received: fields },
       { status: 422 },
     )
   }
@@ -99,22 +128,25 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const phone = body.phone ? String(body.phone) : null
-  const message = body.message ? String(body.message) : null
-  const onderwerp = body.onderwerp ? String(body.onderwerp) : null
-  const aantal_personen = body.aantal_personen != null ? Number(body.aantal_personen) : null
+  const phone           = fields.phone    ? fields.phone.trim()                  : null
+  const message         = fields.message  ? fields.message.trim()                : null
+  const onderwerp       = fields.onderwerp ? fields.onderwerp.trim()              : null
+  const aantal_personen = fields.aantal_personen ? Number(fields.aantal_personen) : null
 
   const draft_email = generateDraftEmail({ name, source, message, onderwerp, aantal_personen })
+
+  // Store raw fields as raw_data for traceability
+  const raw_data: Record<string, string> = { ...fields, _contentType: contentType }
 
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('submissions')
-    .insert({ source, name, email, phone, onderwerp, aantal_personen, message, raw_data: body, draft_email })
+    .insert({ source, name, email, phone, onderwerp, aantal_personen, message, raw_data, draft_email })
     .select()
     .single()
 
   if (error) {
-    console.error('Supabase insert error:', error)
+    console.error('[webhook] Supabase insert error:', error)
     return NextResponse.json({ error: 'Database error' }, { status: 500 })
   }
 
