@@ -15,13 +15,19 @@ export interface Submission {
   onderwerp: string | null
   aantal_personen: number | null
   message: string | null
-  notes: string | null
   raw_data: Record<string, unknown> | null
   status: SubmissionStatus
   draft_email: string | null
   archived_at: string | null
   created_at: string
   updated_at: string
+}
+
+export interface Note {
+  id: string
+  submission_id: string
+  tekst: string
+  created_at: string
 }
 
 export const SOURCE_LABELS: Record<SubmissionSource, string> = {
@@ -36,15 +42,15 @@ export const STATUS_LABELS: Record<SubmissionStatus, string> = {
   afgerond: 'Afgerond',
 }
 
-// Includes dark: variants so pills are readable in both modes
+// Single-space class strings so Tailwind's scanner picks up every token
 export const STATUS_COLORS: Record<SubmissionStatus, string> = {
-  actie_ondernemen:  'bg-red-100    text-red-700    dark:bg-red-900/50    dark:text-red-300',
-  wachten_op_reactie:'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300',
-  afgewezen:         'bg-gray-100   text-gray-500   dark:bg-gray-700      dark:text-gray-400',
-  afgerond:          'bg-green-100  text-green-700  dark:bg-green-900/50  dark:text-green-300',
+  actie_ondernemen:   'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+  wachten_op_reactie: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+  afgewezen:          'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
+  afgerond:           'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
 }
 
 export const SOURCE_COLORS: Record<SubmissionSource, string> = {
-  holy_moly_breda: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300',
-  spinola_breda:   'bg-blue-100   text-blue-700   dark:bg-blue-900/50   dark:text-blue-300',
+  holy_moly_breda: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
+  spinola_breda:   'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
 }
