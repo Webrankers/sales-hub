@@ -1,15 +1,19 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase-browser'
-import type { Submission, SubmissionStatus } from '@/types'
+import type { Submission, SubmissionStatus, SubmissionSource } from '@/types'
+import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
 import SubmissionList from '@/components/SubmissionList'
 import SubmissionDetail from '@/components/SubmissionDetail'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function SalesHub() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [selected, setSelected] = useState<Submission | null>(null)
   const [filter, setFilter] = useState<'active' | 'archived'>('active')
+  const [companyFilter, setCompanyFilter] = useState<'all' | SubmissionSource>('all')
   const [loading, setLoading] = useState(true)
 
   const supabase = createClient()
@@ -21,7 +25,6 @@ export default function SalesHub() {
         .from('submissions')
         .select('*')
         .order('created_at', { ascending: false })
-
       if (!error && data) setSubmissions(data as Submission[])
       setLoading(false)
     }
@@ -32,58 +35,27 @@ export default function SalesHub() {
   useEffect(() => {
     const channel = supabase
       .channel('submissions-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'submissions' },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const row = payload.new as Submission
-            setSubmissions((prev) => [row, ...prev])
-          } else if (payload.eventType === 'UPDATE') {
-            const row = payload.new as Submission
-            setSubmissions((prev) =>
-              prev.map((s) => (s.id === row.id ? row : s)),
-            )
-            setSelected((prev) => (prev?.id === row.id ? row : prev))
-          } else if (payload.eventType === 'DELETE') {
-            const id = (payload.old as Submission).id
-            setSubmissions((prev) => prev.filter((s) => s.id !== id))
-            setSelected((prev) => (prev?.id === id ? null : prev))
-          }
-        },
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setSubmissions((prev) => [payload.new as Submission, ...prev])
+        } else if (payload.eventType === 'UPDATE') {
+          const row = payload.new as Submission
+          setSubmissions((prev) => prev.map((s) => (s.id === row.id ? row : s)))
+          setSelected((prev) => (prev?.id === row.id ? row : prev))
+        } else if (payload.eventType === 'DELETE') {
+          const id = (payload.old as Submission).id
+          setSubmissions((prev) => prev.filter((s) => s.id !== id))
+          setSelected((prev) => (prev?.id === id ? null : prev))
+        }
+      })
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStatusChange = useCallback((id: string, status: SubmissionStatus) => {
-    setSubmissions((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? {
-              ...s,
-              status,
-              archived_at:
-                status === 'afgewezen' || status === 'afgerond'
-                  ? new Date().toISOString()
-                  : null,
-            }
-          : s,
-      ),
-    )
-    setSelected((prev) =>
-      prev?.id === id
-        ? {
-            ...prev,
-            status,
-            archived_at:
-              status === 'afgewezen' || status === 'afgerond'
-                ? new Date().toISOString()
-                : null,
-          }
-        : prev,
-    )
+    const archived_at = status === 'afgewezen' || status === 'afgerond' ? new Date().toISOString() : null
+    setSubmissions((prev) => prev.map((s) => s.id === id ? { ...s, status, archived_at } : s))
+    setSelected((prev) => prev?.id === id ? { ...prev, status, archived_at } : prev)
   }, [])
 
   const handleDelete = useCallback((id: string) => {
@@ -91,9 +63,27 @@ export default function SalesHub() {
     setSelected((prev) => (prev?.id === id ? null : prev))
   }, [])
 
+  function exportToExcel() {
+    const rows = submissions.map((s) => ({
+      'Naam': s.name,
+      'E-mail': s.email,
+      'Telefoon': s.phone ?? '',
+      'Onderwerp': s.onderwerp ?? '',
+      'Aantal personen': s.aantal_personen ?? '',
+      'Bericht': s.message ?? '',
+      'Status': STATUS_LABELS[s.status],
+      'Bron': SOURCE_LABELS[s.source],
+      'Ontvangen': new Date(s.created_at).toLocaleString('nl-NL'),
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Inzendingen')
+    XLSX.writeFile(wb, `sales-hub-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="flex flex-col items-center gap-3 text-gray-400">
           <svg className="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -106,38 +96,56 @@ export default function SalesHub() {
   }
 
   return (
-    <div className="h-full flex overflow-hidden">
-      {/* Left column — submission list */}
-      <div className="w-80 shrink-0 flex flex-col overflow-hidden">
-        <SubmissionList
-          submissions={submissions}
-          selectedId={selected?.id ?? null}
-          onSelect={setSelected}
-          filter={filter}
-          onFilterChange={setFilter}
-        />
-      </div>
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950">
+      {/* Top bar */}
+      <header className="shrink-0 flex items-center justify-end gap-2 px-4 py-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={exportToExcel}
+          className="flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-1.5 rounded-lg transition-opacity hover:opacity-90"
+          style={{ backgroundColor: '#1D6F42' }}
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/>
+          </svg>
+          Export to Excel
+        </button>
+        <ThemeToggle />
+      </header>
 
-      {/* Right column — detail view */}
-      <main className="flex-1 overflow-hidden">
-        {selected ? (
-          <SubmissionDetail
-            key={selected.id}
-            submission={selected}
-            onStatusChange={handleStatusChange}
-            onDelete={handleDelete}
+      {/* Two-column layout */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="w-80 shrink-0 flex flex-col overflow-hidden">
+          <SubmissionList
+            submissions={submissions}
+            selectedId={selected?.id ?? null}
+            onSelect={setSelected}
+            filter={filter}
+            onFilterChange={setFilter}
+            companyFilter={companyFilter}
+            onCompanyFilterChange={setCompanyFilter}
           />
-        ) : (
-          <div className="h-full flex items-center justify-center text-gray-400">
-            <div className="text-center">
-              <svg className="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-              </svg>
-              <p className="text-sm">Selecteer een inzending</p>
+        </div>
+
+        <main className="flex-1 overflow-hidden">
+          {selected ? (
+            <SubmissionDetail
+              key={selected.id}
+              submission={selected}
+              onStatusChange={handleStatusChange}
+              onDelete={handleDelete}
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
+              <div className="text-center">
+                <svg className="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                <p className="text-sm">Selecteer een inzending</p>
+              </div>
             </div>
-          </div>
-        )}
-      </main>
+          )}
+        </main>
+      </div>
     </div>
   )
 }

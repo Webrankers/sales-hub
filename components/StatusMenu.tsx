@@ -56,22 +56,19 @@ export default function StatusMenu({ currentStatus, submissionId, onStatusChange
         <>
           {/* backdrop */}
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <ul className="absolute left-0 top-full mt-1 z-20 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[200px]">
+          <ul className="absolute left-0 top-full mt-1 z-20 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1 min-w-[200px]">
             {STATUSES.map((s) => (
               <li key={s}>
                 <button
                   onClick={() => handleSelect(s)}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 ${
-                    s === currentStatus ? 'font-semibold' : 'text-gray-700'
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 ${
+                    s === currentStatus ? 'font-semibold' : 'text-gray-700 dark:text-gray-200'
                   }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${dotColor(s)}`} />
                   {STATUS_LABELS[s]}
-                  {s === 'afgewezen' && (
-                    <span className="ml-auto text-[10px] text-gray-400">→ archief</span>
-                  )}
-                  {s === 'afgerond' && (
-                    <span className="ml-auto text-[10px] text-gray-400">→ archief</span>
+                  {(s === 'afgewezen' || s === 'afgerond') && (
+                    <span className="ml-auto text-[10px] text-gray-400 dark:text-gray-500">→ archief</span>
                   )}
                 </button>
               </li>
