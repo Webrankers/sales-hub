@@ -157,5 +157,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Database error' }, { status: 500 })
   }
 
-  return NextResponse.json({ id: data.id }, { status: 201 })
+  return NextResponse.json({ success: true, id: data.id }, { status: 200 })
 }
