@@ -15,22 +15,47 @@ interface Props {
 
 const SOURCE_LABEL_STYLES: Record<SubmissionSource, string> = {
   holy_moly_breda: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
-  spinola_breda: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+  spinola_breda:   'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
 }
 
 const SOURCE_NAMES: Record<SubmissionSource, string> = {
   holy_moly_breda: 'Holy Moly Breda',
-  spinola_breda: 'Spinola Breda',
+  spinola_breda:   'Spinola Breda',
 }
 
 const COMPANY_FILTERS: { value: 'all' | SubmissionSource; label: string }[] = [
-  { value: 'all', label: 'Alle' },
+  { value: 'all',             label: 'Alle'      },
   { value: 'holy_moly_breda', label: 'Holy Moly' },
-  { value: 'spinola_breda', label: 'Spinola' },
+  { value: 'spinola_breda',   label: 'Spinola'   },
 ]
 
 function isHotLead(s: Submission) {
   return s.aantal_personen !== null && s.aantal_personen > 100
+}
+
+/** Hours elapsed since a date string */
+function hoursAgo(dateStr: string): number {
+  return (Date.now() - new Date(dateStr).getTime()) / 3_600_000
+}
+
+function timeAgoLabel(dateStr: string): string {
+  const h = hoursAgo(dateStr)
+  if (h < 1) return `${Math.max(1, Math.round(h * 60))} min geleden`
+  if (h < 24) return `${Math.round(h)} uur geleden`
+  const d = Math.floor(h / 24)
+  return `${d} ${d === 1 ? 'dag' : 'dagen'} geleden`
+}
+
+function timeAgoColor(dateStr: string): string {
+  const h = hoursAgo(dateStr)
+  if (h >= 24) return 'text-red-500 dark:text-red-400'
+  if (h >= 2)  return 'text-orange-500 dark:text-orange-400'
+  return 'text-gray-400 dark:text-gray-500'
+}
+
+/** True when 'wachten_op_reactie' for more than 48 hours (based on updated_at) */
+function needs48uBadge(s: Submission): boolean {
+  return s.status === 'wachten_op_reactie' && hoursAgo(s.updated_at) >= 48
 }
 
 export default function SubmissionList({
@@ -100,33 +125,50 @@ export default function SubmissionList({
         {visible.map((s) => {
           const hot = isHotLead(s)
           const sel = selectedId === s.id
+          const badge48u = needs48uBadge(s)
+
           return (
             <li key={s.id}>
               <button
                 onClick={() => onSelect(s)}
-                style={hot && !sel ? { background: 'linear-gradient(135deg,#fff7ed,#fef3c7,#fff1f2)' } : undefined}
-                className={`w-full text-left px-4 py-3 transition-colors ${
+                className={[
+                  'w-full text-left px-4 py-3 transition-colors',
                   sel
                     ? 'bg-indigo-50 dark:bg-indigo-950 border-l-2 border-indigo-500'
                     : hot
-                    ? 'hover:brightness-95 dark:hover:brightness-110'
-                    : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
+                    ? 'hot-lead-bg hover:brightness-95 dark:hover:brightness-125'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800',
+                ].join(' ')}
               >
                 {hot && (
-                  <p className="text-[10px] font-semibold text-orange-500 mb-0.5">🔥 Hot lead!</p>
+                  <p className="text-[10px] font-semibold text-orange-500 dark:text-orange-400 mb-0.5">
+                    🔥 Hot lead!
+                  </p>
                 )}
-                <span className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate block">{s.name}</span>
+
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
+                    {s.name}
+                  </span>
+                  {badge48u && (
+                    <span className="shrink-0 text-[10px] font-bold text-white bg-orange-500 rounded-full px-1.5 py-0.5 animate-pulse">
+                      48u
+                    </span>
+                  )}
+                </div>
+
                 <span className={`inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${SOURCE_LABEL_STYLES[s.source]}`}>
                   {SOURCE_NAMES[s.source]}
                 </span>
+
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">{s.email}</p>
+
                 <div className="flex items-center justify-between mt-1.5">
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[s.status]}`}>
                     {STATUS_LABELS[s.status]}
                   </span>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                    {new Date(s.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
+                  <span className={`text-[10px] ${timeAgoColor(s.created_at)}`}>
+                    {timeAgoLabel(s.created_at)}
                   </span>
                 </div>
               </button>

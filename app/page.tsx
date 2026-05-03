@@ -1,20 +1,31 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase-browser'
 import type { Submission, SubmissionStatus, SubmissionSource } from '@/types'
 import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
-import SubmissionList from '@/components/SubmissionList'
+import SubmissionList   from '@/components/SubmissionList'
 import SubmissionDetail from '@/components/SubmissionDetail'
-import ThemeToggle from '@/components/ThemeToggle'
+import ThemeToggle      from '@/components/ThemeToggle'
+import Dashboard        from '@/components/Dashboard'
+import CalendarView     from '@/components/CalendarView'
+
+type View = 'submissions' | 'dashboard' | 'calendar'
+
+const TABS: { id: View; label: string }[] = [
+  { id: 'submissions', label: 'Inzendingen' },
+  { id: 'dashboard',   label: 'Dashboard'   },
+  { id: 'calendar',    label: 'Kalender'    },
+]
 
 export default function SalesHub() {
-  const [submissions, setSubmissions] = useState<Submission[]>([])
-  const [selected, setSelected] = useState<Submission | null>(null)
-  const [filter, setFilter] = useState<'active' | 'archived'>('active')
-  const [companyFilter, setCompanyFilter] = useState<'all' | SubmissionSource>('all')
-  const [loading, setLoading] = useState(true)
+  const [submissions, setSubmissions]       = useState<Submission[]>([])
+  const [selected, setSelected]             = useState<Submission | null>(null)
+  const [filter, setFilter]                 = useState<'active' | 'archived'>('active')
+  const [companyFilter, setCompanyFilter]   = useState<'all' | SubmissionSource>('all')
+  const [view, setView]                     = useState<View>('submissions')
+  const [loading, setLoading]               = useState(true)
 
   const supabase = createClient()
 
@@ -63,17 +74,27 @@ export default function SalesHub() {
     setSelected((prev) => (prev?.id === id ? null : prev))
   }, [])
 
+  // Auto-sort: hot leads (100+ personen) first, then newest first
+  const sortedSubmissions = useMemo(() =>
+    [...submissions].sort((a, b) => {
+      const aHot = (a.aantal_personen ?? 0) > 100 ? 1 : 0
+      const bHot = (b.aantal_personen ?? 0) > 100 ? 1 : 0
+      if (aHot !== bHot) return bHot - aHot
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    }),
+  [submissions])
+
   function exportToExcel() {
     const rows = submissions.map((s) => ({
-      'Naam': s.name,
-      'E-mail': s.email,
-      'Telefoon': s.phone ?? '',
-      'Onderwerp': s.onderwerp ?? '',
+      'Naam':            s.name,
+      'E-mail':          s.email,
+      'Telefoon':        s.phone ?? '',
+      'Onderwerp':       s.onderwerp ?? '',
       'Aantal personen': s.aantal_personen ?? '',
-      'Bericht': s.message ?? '',
-      'Status': STATUS_LABELS[s.status],
-      'Bron': SOURCE_LABELS[s.source],
-      'Ontvangen': new Date(s.created_at).toLocaleString('nl-NL'),
+      'Bericht':         s.message ?? '',
+      'Status':          STATUS_LABELS[s.status],
+      'Bron':            SOURCE_LABELS[s.source],
+      'Ontvangen':       new Date(s.created_at).toLocaleString('nl-NL'),
     }))
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
@@ -98,7 +119,26 @@ export default function SalesHub() {
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* Top bar */}
-      <header className="shrink-0 flex items-center justify-end gap-2 px-4 py-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+      <header className="shrink-0 flex items-center gap-4 px-4 py-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        {/* Navigation tabs */}
+        <nav className="flex gap-1">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setView(tab.id)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                view === tab.id
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex-1" />
+
         <button
           onClick={exportToExcel}
           className="flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-1.5 rounded-lg transition-opacity hover:opacity-90"
@@ -112,40 +152,49 @@ export default function SalesHub() {
         <ThemeToggle />
       </header>
 
-      {/* Two-column layout */}
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-80 shrink-0 flex flex-col overflow-hidden">
-          <SubmissionList
-            submissions={submissions}
-            selectedId={selected?.id ?? null}
-            onSelect={setSelected}
-            filter={filter}
-            onFilterChange={setFilter}
-            companyFilter={companyFilter}
-            onCompanyFilterChange={setCompanyFilter}
-          />
-        </div>
-
-        <main className="flex-1 overflow-hidden">
-          {selected ? (
-            <SubmissionDetail
-              key={selected.id}
-              submission={selected}
-              onStatusChange={handleStatusChange}
-              onDelete={handleDelete}
+      {/* Views */}
+      {view === 'submissions' && (
+        <div className="flex-1 flex overflow-hidden">
+          <div className="w-80 shrink-0 flex flex-col overflow-hidden">
+            <SubmissionList
+              submissions={sortedSubmissions}
+              selectedId={selected?.id ?? null}
+              onSelect={setSelected}
+              filter={filter}
+              onFilterChange={setFilter}
+              companyFilter={companyFilter}
+              onCompanyFilterChange={setCompanyFilter}
             />
-          ) : (
-            <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
-              <div className="text-center">
-                <svg className="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                </svg>
-                <p className="text-sm">Selecteer een inzending</p>
+          </div>
+          <main className="flex-1 overflow-hidden">
+            {selected ? (
+              <SubmissionDetail
+                key={selected.id}
+                submission={selected}
+                onStatusChange={handleStatusChange}
+                onDelete={handleDelete}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
+                <div className="text-center">
+                  <svg className="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                  </svg>
+                  <p className="text-sm">Selecteer een inzending</p>
+                </div>
               </div>
-            </div>
-          )}
-        </main>
-      </div>
+            )}
+          </main>
+        </div>
+      )}
+
+      {view === 'dashboard' && (
+        <Dashboard submissions={submissions} />
+      )}
+
+      {view === 'calendar' && (
+        <CalendarView submissions={submissions} />
+      )}
     </div>
   )
 }

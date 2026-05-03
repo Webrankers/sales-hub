@@ -5,3 +5,11 @@
 html, body, #__next {
   height: 100%;
 }
+
+/* Hot lead card gradient — light and dark variants */
+.hot-lead-bg {
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 50%, #fff1f2 100%);
+}
+.dark .hot-lead-bg {
+  background: linear-gradient(135deg, #431407 0%, #422006 50%, #450a0a 100%);
+}
