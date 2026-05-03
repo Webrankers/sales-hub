@@ -1,7 +1,7 @@
 'use client'
 
 import type { Submission } from '@/types'
-import { SOURCE_LABELS, SOURCE_COLORS, STATUS_LABELS, STATUS_COLORS } from '@/types'
+import { STATUS_LABELS, STATUS_COLORS } from '@/types'
 
 interface Props {
   submissions: Submission[]
@@ -9,6 +9,20 @@ interface Props {
   onSelect: (submission: Submission) => void
   filter: 'active' | 'archived'
   onFilterChange: (f: 'active' | 'archived') => void
+}
+
+const SOURCE_LABEL_STYLES: Record<string, string> = {
+  holy_moly_breda: 'bg-purple-100 text-purple-700',
+  spinola_breda: 'bg-yellow-100 text-yellow-700',
+}
+
+const SOURCE_NAMES: Record<string, string> = {
+  holy_moly_breda: 'Holy Moly Breda',
+  spinola_breda: 'Spinola Breda',
+}
+
+function isHotLead(s: Submission) {
+  return s.aantal_personen !== null && s.aantal_personen > 100
 }
 
 export default function SubmissionList({
@@ -56,35 +70,47 @@ export default function SubmissionList({
             Geen inzendingen
           </li>
         )}
-        {visible.map((s) => (
-          <li key={s.id}>
-            <button
-              onClick={() => onSelect(s)}
-              className={`w-full text-left px-4 py-3 transition-colors hover:bg-gray-50 ${
-                selectedId === s.id ? 'bg-indigo-50 border-l-2 border-indigo-500' : ''
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className="font-medium text-sm text-gray-900 truncate">{s.name}</span>
-                <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${SOURCE_COLORS[s.source]}`}>
-                  {s.source === 'holy_moly_breda' ? 'HM' : 'SP'}
+        {visible.map((s) => {
+          const hot = isHotLead(s)
+          const selected = selectedId === s.id
+          return (
+            <li key={s.id}>
+              <button
+                onClick={() => onSelect(s)}
+                style={hot ? { background: 'linear-gradient(135deg, #fff7ed 0%, #fef3c7 50%, #fff1f2 100%)' } : undefined}
+                className={`w-full text-left px-4 py-3 transition-colors ${
+                  selected
+                    ? 'bg-indigo-50 border-l-2 border-indigo-500'
+                    : hot
+                    ? 'hover:brightness-95'
+                    : 'hover:bg-gray-50'
+                }`}
+              >
+                {hot && (
+                  <p className="text-[10px] font-semibold text-orange-500 mb-0.5">🔥 Hot lead!</p>
+                )}
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-medium text-sm text-gray-900 truncate">{s.name}</span>
+                </div>
+                <span className={`inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${SOURCE_LABEL_STYLES[s.source]}`}>
+                  {SOURCE_NAMES[s.source]}
                 </span>
-              </div>
-              <p className="text-xs text-gray-500 truncate mt-0.5">{s.email}</p>
-              <div className="flex items-center justify-between mt-1.5">
-                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[s.status]}`}>
-                  {STATUS_LABELS[s.status]}
-                </span>
-                <span className="text-[10px] text-gray-400">
-                  {new Date(s.created_at).toLocaleDateString('nl-NL', {
-                    day: 'numeric',
-                    month: 'short',
-                  })}
-                </span>
-              </div>
-            </button>
-          </li>
-        ))}
+                <p className="text-xs text-gray-500 truncate mt-1">{s.email}</p>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[s.status]}`}>
+                    {STATUS_LABELS[s.status]}
+                  </span>
+                  <span className="text-[10px] text-gray-400">
+                    {new Date(s.created_at).toLocaleDateString('nl-NL', {
+                      day: 'numeric',
+                      month: 'short',
+                    })}
+                  </span>
+                </div>
+              </button>
+            </li>
+          )
+        })}
       </ul>
 
       {/* Footer count */}

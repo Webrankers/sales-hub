@@ -86,6 +86,11 @@ export default function SalesHub() {
     )
   }, [])
 
+  const handleDelete = useCallback((id: string) => {
+    setSubmissions((prev) => prev.filter((s) => s.id !== id))
+    setSelected((prev) => (prev?.id === id ? null : prev))
+  }, [])
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -120,6 +125,7 @@ export default function SalesHub() {
             key={selected.id}
             submission={selected}
             onStatusChange={handleStatusChange}
+            onDelete={handleDelete}
           />
         ) : (
           <div className="h-full flex items-center justify-center text-gray-400">

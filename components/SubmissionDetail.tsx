@@ -8,6 +8,7 @@ import StatusMenu from './StatusMenu'
 interface Props {
   submission: Submission
   onStatusChange: (id: string, status: SubmissionStatus) => void
+  onDelete: (id: string) => void
 }
 
 function buildGmailUrl(to: string, subject: string, body: string) {
@@ -20,8 +21,9 @@ function buildCalendarUrl(name: string, email: string) {
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&details=${encodeURIComponent(details)}`
 }
 
-export default function SubmissionDetail({ submission, onStatusChange }: Props) {
+export default function SubmissionDetail({ submission, onStatusChange, onDelete }: Props) {
   const [copied, setCopied] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const subject = `Naar aanleiding van uw aanvraag via ${SOURCE_LABELS[submission.source]}`
   const draftBody = submission.draft_email ?? ''
@@ -30,6 +32,18 @@ export default function SubmissionDetail({ submission, onStatusChange }: Props) 
     await navigator.clipboard.writeText(draftBody)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`Weet je zeker dat je de inzending van ${submission.name} permanent wilt verwijderen?`)) return
+    setDeleting(true)
+    const res = await fetch(`/api/submissions/${submission.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      onDelete(submission.id)
+    } else {
+      alert('Verwijderen mislukt. Probeer het opnieuw.')
+      setDeleting(false)
+    }
   }
 
   return (
@@ -49,6 +63,16 @@ export default function SubmissionDetail({ submission, onStatusChange }: Props) 
             submissionId={submission.id}
             onStatusChange={(status) => onStatusChange(submission.id, status)}
           />
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 px-2.5 py-1.5 rounded-lg border border-red-200 hover:border-red-300 transition-colors disabled:opacity-50"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            {deleting ? 'Verwijderen…' : 'Verwijder'}
+          </button>
         </div>
       </div>
 

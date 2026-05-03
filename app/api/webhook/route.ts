@@ -9,21 +9,53 @@ function normalizeSource(raw: string): 'holy_moly_breda' | 'spinola_breda' | nul
   return null
 }
 
-function generateDraftEmail(name: string, source: string, message: string | null): string {
+interface EmailContext {
+  name: string
+  source: string
+  message: string | null
+  onderwerp: string | null
+  aantal_personen: number | null
+}
+
+function generateDraftEmail(ctx: EmailContext): string {
+  const { name, source, message, onderwerp, aantal_personen } = ctx
   const sourceName = source === 'holy_moly_breda' ? 'Holy Moly Breda' : 'Spinola Breda'
   const firstName = name.split(' ')[0]
 
-  const messageBlock = message
-    ? `U liet het volgende bericht achter:\n\n"${message}"\n\nWe hebben dit goed ontvangen en gaan hier graag op in.`
-    : `We hebben uw aanvraag in goede orde ontvangen en nemen graag contact met u op.`
+  // Opening — verwijs direct naar het onderwerp of bericht als dat er is
+  let opening: string
+  if (onderwerp) {
+    opening = `Je nam contact op via onze website over "${onderwerp}". Leuk dat je interesse hebt!`
+  } else if (message) {
+    opening = `Je nam contact op via onze website. We hebben je bericht goed gelezen.`
+  } else {
+    opening = `Je nam contact op via onze website. Goed dat je de weg naar ons weet te vinden!`
+  }
 
-  return `Beste ${firstName},
+  // Inhoudelijke reactie op het bericht
+  let messageReaction = ''
+  if (message) {
+    messageReaction = `\n\nJe schrijft: "${message}"\n\nDat klinkt als iets waar wij absoluut bij kunnen helpen.`
+  }
 
-Hartelijk dank voor uw interesse in ${sourceName}. ${messageBlock}
+  // Specifieke vermelding van het aantal personen als dat relevant is
+  let persoonDetail = ''
+  if (aantal_personen !== null && aantal_personen > 0) {
+    persoonDetail = ` voor ${aantal_personen} ${aantal_personen === 1 ? 'persoon' : 'personen'}`
+  }
 
-Zou u tijd hebben voor een kort kennismakingsgesprek? Ik help u graag verder en bespreek met u wat wij voor u kunnen betekenen.
+  // Afsluiting met concrete uitnodiging
+  const closing = persoonDetail
+    ? `Zou je tijd hebben voor een kort gesprek? Dan kijk ik graag met je mee wat we${persoonDetail} kunnen betekenen.`
+    : `Zou je tijd hebben voor een kort gesprek? Dan vertel ik je graag wat de mogelijkheden zijn.`
 
-U kunt mij bereiken via dit e-mailadres of telefonisch. Ik kijk uit naar uw reactie!
+  return `Hoi ${firstName},
+
+${opening}${messageReaction}
+
+${closing}
+
+Je kunt me gewoon terugmailen of bellen — wat jij het fijnst vindt. Ik hoor graag van je!
 
 Met vriendelijke groet,
 Het ${sourceName} team`
@@ -70,7 +102,7 @@ export async function POST(req: NextRequest) {
   const onderwerp = body.onderwerp ? String(body.onderwerp) : null
   const aantal_personen = body.aantal_personen != null ? Number(body.aantal_personen) : null
 
-  const draft_email = generateDraftEmail(name, source, message)
+  const draft_email = generateDraftEmail({ name, source, message, onderwerp, aantal_personen })
 
   const supabase = createServiceClient()
   const { data, error } = await supabase
