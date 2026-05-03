@@ -79,10 +79,17 @@ async function parseBody(req: NextRequest): Promise<{
       // Leave fields empty — validation will catch missing required fields
     }
   } else {
-    // application/x-www-form-urlencoded (Elementor default) or multipart fallback
+    // application/x-www-form-urlencoded — Elementor sends fields[FIELDNAME][value]
     const params = new URLSearchParams(rawText)
     for (const [k, v] of params.entries()) {
-      fields[k] = v
+      // Extract fields[name][value] → name
+      const match = k.match(/^fields\[([^\]]+)\]\[value\]$/)
+      if (match) {
+        fields[match[1]] = v
+      } else {
+        // Keep flat keys as-is for non-Elementor senders
+        fields[k] = v
+      }
     }
   }
 
