@@ -39,9 +39,9 @@ const TILES: Tile[] = [
   {
     id: 'marketing',
     label: 'Marketing',
-    description: 'Campagnes, content en prestaties op één plek.',
+    description: 'Content kalender, posts plannen en hashtag sets voor Holy Moly & Spinola.',
     color: 'from-pink-500 to-rose-600',
-    soon: true,
+    href: '/marketing',
     rollen: ['eigenaar', 'marketing'],
     icon: (
       <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
