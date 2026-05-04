@@ -52,9 +52,9 @@ const TILES: Tile[] = [
   {
     id: 'admin',
     label: 'Administratie',
-    description: 'Facturatie, documenten en bedrijfsoverzicht.',
+    description: 'Documenten, taken, contacten en notities op één plek.',
     color: 'from-amber-500 to-orange-600',
-    soon: true,
+    href: '/administratie',
     rollen: ['eigenaar', 'admin'],
     icon: (
       <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
