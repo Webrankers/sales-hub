@@ -76,10 +76,8 @@ export default function PostModal({ post, hashtagSets, onSave, onDelete, onClose
     }
   }
 
-  // Only show sets relevant to the chosen platform
-  const relevantSets = hashtagSets.filter(
-    (s) => s.platform === 'all' || s.platform === platform,
-  )
+  // Show all saved hashtag sets
+  const relevantSets = hashtagSets
 
   return (
     <div
@@ -190,7 +188,7 @@ export default function PostModal({ post, hashtagSets, onSave, onDelete, onClose
                     key={s.id}
                     type="button"
                     onClick={() => appendHashtagSet(s)}
-                    title={s.hashtags}
+                    title={`${s.onderwerp ? s.onderwerp + ' — ' : ''}${s.hashtags}`}
                     className="text-[11px] font-semibold px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                   >
                     + {s.naam}

@@ -21,8 +21,7 @@ CREATE POLICY "Authenticated lezen en schrijven content_posts" ON content_posts
 CREATE TABLE IF NOT EXISTS hashtag_sets (
   id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   naam       TEXT NOT NULL,
-  platform   TEXT NOT NULL DEFAULT 'all'
-             CHECK (platform IN ('instagram', 'tiktok', 'facebook', 'all')),
+  onderwerp  TEXT NOT NULL DEFAULT '',
   hashtags   TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );

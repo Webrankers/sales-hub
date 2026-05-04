@@ -18,7 +18,7 @@ export interface ContentPost {
 export interface HashtagSet {
   id:         string
   naam:       string
-  platform:   Platform | 'all'
+  onderwerp:  string
   hashtags:   string
   created_at: string
 }

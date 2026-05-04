@@ -92,7 +92,7 @@ export default function MarketingPage() {
 
   // ── Hashtag set CRUD ───────────────────────────────────────────────────────
 
-  const createHashtagSet = useCallback(async (data: { naam: string; platform: string; hashtags: string }) => {
+  const createHashtagSet = useCallback(async (data: { naam: string; onderwerp: string; hashtags: string }) => {
     const res = await fetch('/api/marketing/hashtag-sets', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },

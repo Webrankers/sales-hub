@@ -1,43 +1,29 @@
 'use client'
 
 import { useState } from 'react'
-import type { HashtagSet, Platform } from '@/types/marketing'
-import { PLATFORM_LABELS } from '@/types/marketing'
-
-type PlatformAll = Platform | 'all'
-const PLATFORMS_ALL: PlatformAll[] = ['all', 'instagram', 'tiktok', 'facebook']
-
-function platformLabel(p: PlatformAll) {
-  return p === 'all' ? 'Alle platforms' : PLATFORM_LABELS[p]
-}
-
-function platformBadge(p: PlatformAll): string {
-  if (p === 'instagram') return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-  if (p === 'tiktok')    return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-  if (p === 'facebook')  return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-  /* all */               return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-}
+import type { HashtagSet } from '@/types/marketing'
 
 interface Props {
   sets:     HashtagSet[]
-  onAdd:    (data: { naam: string; platform: PlatformAll; hashtags: string }) => Promise<void>
+  onAdd:    (data: { naam: string; onderwerp: string; hashtags: string }) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
 
 const FIELD = 'w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition'
 
 export default function HashtagSets({ sets, onAdd, onDelete }: Props) {
-  const [naam,     setNaam]     = useState('')
-  const [platform, setPlatform] = useState<PlatformAll>('all')
-  const [hashtags, setHashtags] = useState('')
-  const [saving,   setSaving]   = useState(false)
+  const [naam,      setNaam]      = useState('')
+  const [onderwerp, setOnderwerp] = useState('')
+  const [hashtags,  setHashtags]  = useState('')
+  const [saving,    setSaving]    = useState(false)
 
   async function handleAdd() {
     if (!naam.trim() || !hashtags.trim()) return
     setSaving(true)
     try {
-      await onAdd({ naam: naam.trim(), platform, hashtags: hashtags.trim() })
+      await onAdd({ naam: naam.trim(), onderwerp: onderwerp.trim(), hashtags: hashtags.trim() })
       setNaam('')
+      setOnderwerp('')
       setHashtags('')
     } finally {
       setSaving(false)
@@ -58,20 +44,18 @@ export default function HashtagSets({ sets, onAdd, onDelete }: Props) {
                 value={naam}
                 onChange={(e) => setNaam(e.target.value)}
                 className={FIELD}
-                placeholder="bijv. Bruiloft"
+                placeholder="bijv. Bruiloft set"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Platform</label>
-              <select
-                value={platform}
-                onChange={(e) => setPlatform(e.target.value as PlatformAll)}
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Onderwerp</label>
+              <input
+                type="text"
+                value={onderwerp}
+                onChange={(e) => setOnderwerp(e.target.value)}
                 className={FIELD}
-              >
-                {PLATFORMS_ALL.map((p) => (
-                  <option key={p} value={p}>{platformLabel(p)}</option>
-                ))}
-              </select>
+                placeholder="bijv. Feest, Zomer, Breda"
+              />
             </div>
           </div>
 
@@ -114,9 +98,11 @@ export default function HashtagSets({ sets, onAdd, onDelete }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{s.naam}</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${platformBadge(s.platform as PlatformAll)}`}>
-                      {platformLabel(s.platform as PlatformAll)}
-                    </span>
+                    {s.onderwerp && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                        {s.onderwerp}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 break-all leading-relaxed">{s.hashtags}</p>
                 </div>
