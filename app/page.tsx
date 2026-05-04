@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase-browser'
 import type { Submission, SubmissionStatus, SubmissionSource } from '@/types'
@@ -22,6 +23,7 @@ const TABS: { id: View; label: string }[] = [
 ]
 
 export default function SalesHub() {
+  const router = useRouter()
   const [submissions, setSubmissions]       = useState<Submission[]>([])
   const [selected, setSelected]             = useState<Submission | null>(null)
   const [filter, setFilter]                 = useState<'active' | 'archived'>('active')
@@ -123,6 +125,17 @@ export default function SalesHub() {
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* Top bar */}
       <header className="shrink-0 flex items-center gap-4 px-4 py-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        {/* Back to hub */}
+        <button
+          onClick={() => router.push('/hub')}
+          className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mr-1"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Hub
+        </button>
+
         {/* Navigation tabs */}
         <nav className="flex gap-1">
           {TABS.map((tab) => (
