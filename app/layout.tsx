@@ -2,8 +2,13 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Sales Hub',
-  description: 'Sales inzendingen — Holy Moly Breda & Spinola Breda',
+  title: 'Hub',
+  description: 'Holy Moly Breda · Spinola Breda',
+  icons: {
+    icon:     '/icon.png',
+    shortcut: '/favicon.ico',
+    apple:    '/icon.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
