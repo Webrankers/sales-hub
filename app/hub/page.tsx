@@ -62,6 +62,19 @@ const TILES: Tile[] = [
       </svg>
     ),
   },
+  {
+    id: 'aanvragen',
+    label: 'Aanvragen',
+    description: 'Dien een marketingaanvraag in of volg de status van jouw aanvragen.',
+    color: 'from-violet-500 to-purple-700',
+    href: '/aanvragen',
+    rollen: ['eigenaar', 'sales', 'marketing', 'admin'],
+    icon: (
+      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    ),
+  },
 ]
 
 export default function HubPage() {

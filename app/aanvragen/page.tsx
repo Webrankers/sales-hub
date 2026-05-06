@@ -1,27 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase-browser'
-import AanvragenTab from '@/components/marketing/AanvragenTab'
-import PlanningTab  from '@/components/marketing/PlanningTab'
+import AanvraagFormulier from '@/components/aanvragen/AanvraagFormulier'
+import MijnAanvragen     from '@/components/aanvragen/MijnAanvragen'
+import { useRouter }     from 'next/navigation'
+import { createClient }  from '@/lib/supabase-browser'
 
-type Tab = 'aanvragen' | 'planning'
+type Tab = 'formulier' | 'mijn'
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'aanvragen', label: 'Aanvragen' },
-  { id: 'planning',  label: 'Planning'  },
-]
-
-export default function MarketingPage() {
-  const router   = useRouter()
+export default function AanvragenPage() {
+  const [tab,      setTab]      = useState<Tab>('formulier')
+  const [refresh,  setRefresh]  = useState(0)
+  const router  = useRouter()
   const supabase = createClient()
-  const [activeTab, setActiveTab] = useState<Tab>('aanvragen')
 
   async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
+  }
+
+  function onFormSuccess() {
+    setTab('mijn')
+    setRefresh(r => r + 1)
   }
 
   return (
@@ -40,12 +41,12 @@ export default function MarketingPage() {
           </button>
           <span className="text-gray-200 dark:text-gray-700">/</span>
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
+            <div className="w-5 h-5 rounded bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
               <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
-            <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Marketing</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Aanvragen</span>
           </div>
         </div>
         <button
@@ -57,15 +58,18 @@ export default function MarketingPage() {
       </header>
 
       {/* Tabs */}
-      <div className="max-w-5xl mx-auto px-6 pt-8">
+      <div className="max-w-3xl mx-auto px-6 pt-8">
         <div className="flex gap-1 bg-gray-100 dark:bg-gray-800/50 rounded-xl p-1 w-fit mb-8">
-          {TABS.map(t => (
+          {([
+            { id: 'formulier', label: 'Nieuwe aanvraag' },
+            { id: 'mijn',      label: 'Mijn aanvragen'  },
+          ] as { id: Tab; label: string }[]).map(t => (
             <button
               key={t.id}
-              onClick={() => setActiveTab(t.id)}
+              onClick={() => setTab(t.id)}
               className={[
                 'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                activeTab === t.id
+                tab === t.id
                   ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
               ].join(' ')}
@@ -75,8 +79,8 @@ export default function MarketingPage() {
           ))}
         </div>
 
-        {activeTab === 'aanvragen' && <AanvragenTab />}
-        {activeTab === 'planning'  && <PlanningTab />}
+        {tab === 'formulier' && <AanvraagFormulier onSuccess={onFormSuccess} />}
+        {tab === 'mijn'      && <MijnAanvragen key={refresh} />}
       </div>
     </div>
   )
